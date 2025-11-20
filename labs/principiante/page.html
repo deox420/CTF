@@ -1,0 +1,174 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+<title>ZAPP Notes</title>
+</head><body><span style="background-color: #0000ff"><span style="color: #ffffff">Analisis activo</span></span>:<ul><li><span style="color: #ffffff"><span style="background-color: #0000ff"><div style="text-align: center">Escaneo IP</div></span></span><div style="text-align: center">:</div></li>
+</ul>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# nmap -p- -T4 -sV -sC 192.168.77.71<br/>
+Starting Nmap 7.95 ( https://nmap.org ) at 2025-11-20 15:40 CET<br/>
+Nmap scan report for 192.168.77.71<br/>
+Host is up (0.0017s latency).<br/>
+Not shown: 65532 closed tcp ports (reset)<br/>
+PORT &nbsp; STATE SERVICE VERSION<br/>
+<span style="color: #ffffff">21/tcp open &nbsp;ftp</span>&nbsp; &nbsp; &nbsp;vsftpd 2.0.8 or later<br/>
+| ftp-syst:<br/>
+| &nbsp; STAT:<br/>
+| FTP server status:<br/>
+| &nbsp; &nbsp; &nbsp;Connected to ::ffff:192.168.77.10<br/>
+| &nbsp; &nbsp; &nbsp;Logged in as ftp<br/>
+| &nbsp; &nbsp; &nbsp;TYPE: ASCII<br/>
+| &nbsp; &nbsp; &nbsp;No session bandwidth limit<br/>
+| &nbsp; &nbsp; &nbsp;Session timeout in seconds is 300<br/>
+| &nbsp; &nbsp; &nbsp;Control connection is plain text<br/>
+| &nbsp; &nbsp; &nbsp;Data connections will be plain text<br/>
+| &nbsp; &nbsp; &nbsp;At session startup, client count was 3<br/>
+| &nbsp; &nbsp; &nbsp;vsFTPd 3.0.3 - secure, fast, stable<br/>
+|_End of status<br/>
+| <span style="color: #ffffff"><span style="background-color: #ff0000">ftp-anon</span></span>: Anonymous FTP login allowed (FTP code 230)<br/>
+|<span style="color: #ffffff"><span style="background-color: #ff0000">&nbsp;-rw-r--r-- &nbsp; &nbsp;1 0 &nbsp; &nbsp; &nbsp; &nbsp;0 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;28 Oct 29 20:59 login.txt<br/>
+</span></span><span style="color: #ffffff"><span style="background-color: #ff0000">|_-rw-r--r-- &nbsp; &nbsp;1 0 &nbsp; &nbsp; &nbsp; &nbsp;0 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;65 Oct 29 21:23 secret.txt</span></span><br/>
+22/tcp open &nbsp;ssh &nbsp; &nbsp; OpenSSH 8.4p1 Debian 5+deb11u5 (protocol 2.0)<br/>
+| ssh-hostkey:<br/>
+| &nbsp; 3072 a3:23:b3:aa:df:c6:51:cb:a2:0c:92:8e:6b:fe:96:ee (RSA)<br/>
+| &nbsp; 256 fd:95:2f:2f:7f:5a:21:b5:0e:75:2c:da:18:c9:52:35 (ECDSA)<br/>
+|_ &nbsp;256 a1:0e:0d:79:8e:54:3e:0e:ed:2f:96:d6:d3:9a:9f:a6 (ED25519)<br/>
+80/tcp open &nbsp;http &nbsp; &nbsp;Apache httpd 2.4.65 ((Debian))<br/>
+|_http-server-header: Apache/2.4.65 (Debian)<br/>
+|_http-title: zappskred - CTF Challenge<br/>
+Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel<br/>
+<br/>
+Service detection performed. Please report any incorrect results at https://nmap.org/submit/ .<br/>
+Nmap done: 1 IP address (1 host up) scanned in 20.47 seconds<br/>
+<ul><div style="text-align: center"><li><span style="color: #ffffff"><span style="background-color: #0000ff">Escaneo WEB</span></span>:</li>
+</div></ul>
+<div style="text-align: center"><br/>
+</div>┌──(root㉿deox-PC)-[~]<br/>
+└─# feroxbuster -u http://192.168.77.71/<br/>
+403 &nbsp; &nbsp; &nbsp;GET &nbsp; &nbsp; &nbsp; &nbsp;9l &nbsp; &nbsp; &nbsp; 28w &nbsp; &nbsp; &nbsp;278c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter<br/>
+404 &nbsp; &nbsp; &nbsp;GET &nbsp; &nbsp; &nbsp; &nbsp;9l &nbsp; &nbsp; &nbsp; 31w &nbsp; &nbsp; &nbsp;275c Auto-filtering found 404-like response and created new filter; toggle off with --dont-filter<br/>
+200 &nbsp; &nbsp; &nbsp;GET &nbsp; &nbsp; &nbsp;402l &nbsp; &nbsp; 2257w &nbsp; 173244c http://192.168.77.71/zapp.jpg<br/>
+200 &nbsp; &nbsp; &nbsp;GET &nbsp; &nbsp; &nbsp;237l &nbsp; &nbsp; &nbsp;488w &nbsp; &nbsp; 6570c http://192.168.77.71/<br/>
+[####################] - 7s &nbsp; &nbsp; 30001/30001 &nbsp; 0s &nbsp; &nbsp; &nbsp;found:2 &nbsp; &nbsp; &nbsp; errors:412<br/>
+[####################] - 6s &nbsp; &nbsp; 30000/30000 &nbsp; 4944/s &nbsp;http://192.168.77.71/<br/>
+<br/>
+<ul><div style="text-align: center"><li><span style="color: #ffffff"><span style="background-color: #0000ff">curl a la IP:</span></span></li>
+</div></ul>
+<div style="text-align: center"><div style="text-align: left">informacion, algun tipo de hash o mensaje oculto</div><br/>
+</div>&nbsp; &nbsp; &lt;div style="display:none"&gt;<a href="Decodificando el mensaje oculto pasandolo 4 veces por Base64"><span style="color: #ffffff"><span style="background-color: #ff0000">4444 VjFST1YyRkhVa2xUYmxwYVRURmFiMXBGYUV0a2JWSjBWbTF3WVZkRk1VeERaejA5Q2c9PQo=</span></span></a>&lt;/div&gt;<br/>
+<br/>
+<ul><div style="text-align: center"><li><span style="background-color: #0000ff"><span style="color: #ffffff">Conexion a FTP por annon</span></span></li>
+<li style="list-style-type: none"></li>
+</div></ul>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# ftp 192.168.77.71<br/>
+Connected to 192.168.77.71.<br/>
+220 Welcome zappskred.<br/>
+Name (192.168.77.71:root): anonymous<br/>
+331 Please specify the password.<br/>
+Password:<br/>
+230 Login successful.<br/>
+Remote system type is UNIX.<br/>
+Using binary mode to transfer files.<br/>
+ftp&gt; ls<br/>
+229 Entering Extended Passive Mode (|||8670|)<br/>
+150 Here comes the directory listing.<br/>
+-rw-r--r-- &nbsp; &nbsp;1 0 &nbsp; &nbsp; &nbsp; &nbsp;0 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;28 Oct 29 20:59 login.txt<br/>
+-rw-r--r-- &nbsp; &nbsp;1 0 &nbsp; &nbsp; &nbsp; &nbsp;0 &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;65 Oct 29 21:23 secret.txt<br/>
+226 Directory send OK.<br/>
+ftp&gt; get login.txt<br/>
+local: login.txt remote: login.txt<br/>
+229 Entering Extended Passive Mode (|||5710|)<br/>
+150 Opening BINARY mode data connection for login.txt (28 bytes).<br/>
+100% |*********************************************************| &nbsp; &nbsp;28 &nbsp; &nbsp; &nbsp; &nbsp;8.29 KiB/s &nbsp; &nbsp;00:00 ETA<br/>
+226 Transfer complete.<br/>
+28 bytes received in 00:00 (4.39 KiB/s)<br/>
+ftp&gt; get secret.txt<br/>
+local: secret.txt remote: secret.txt<br/>
+229 Entering Extended Passive Mode (|||23586|)<br/>
+150 Opening BINARY mode data connection for secret.txt (65 bytes).<br/>
+100% |*********************************************************| &nbsp; &nbsp;65 &nbsp; &nbsp; &nbsp; 19.73 KiB/s &nbsp; &nbsp;00:00 ETA<br/>
+226 Transfer complete.<br/>
+65 bytes received in 00:00 (14.55 KiB/s)<br/>
+ftp&gt;<ul><div style="text-align: center"><li><span style="color: #ffffff"><span style="background-color: #0000ff">Documentos de FTP</span></span>:</li>
+</div></ul>
+<div style="text-align: center"><br/>
+</div>┌──(root㉿deox-PC)-[~]<br/>
+└─# cat login.txt<br/>
+puerto<br/>
+4444<br/>
+coffee<br/>
+GoodLuck<br/>
+<br/>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# cat secret.txt<br/>
+0jO cOn 31 c4fe 813n p23p424dO, 4 v3c35 14 pista 357a 3n 14 7424<br/>
+<ul><li><span style="color: #ffffff"><span style="background-color: #0000ff"><div style="text-align: center">Decodificando el mensaje oculto pasandolo 4 veces por Base64</div></span></span><div style="text-align: center">:</div></li>
+</ul>
+<span style="background-color: #ff0000"><span style="color: #ffffff"><a href="Decodificando el mensaje oculto pasandolo 4 veces por Base64">4444 VjFST1YyRkhVa2xUYmxwYVRURmFiMXBGYUV0a2JWSjBWbTF3WVZkRk1VeERaejA5Q2c9PQo=</a></span></span><br/>
+<span style="background-color: #00ffff"><span style="color: #000000">cuatrocuatroveces<br/>
+<br/>
+</span></span><img src="captura de pantalla 2025-11-20 163225.png" /><br/>
+<br/>
+cuatrocuatroveces es un directorio de la web<br/>
+<br/>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# wget http://192.168.77.71/cuatrocuatroveces/Sup3rP4ss.rar<br/>
+--2025-11-20 16:26:36-- &nbsp;http://192.168.77.71/cuatrocuatroveces/Sup3rP4ss.rar<br/>
+Connecting to 192.168.77.71:80... connected.<br/>
+HTTP request sent, awaiting response... 200 OK<br/>
+Length: 174 [application/vnd.rar]<br/>
+Saving to: ‘Sup3rP4ss.rar’<br/>
+<br/>
+Sup3rP4ss.rar &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; 100%[===================================&gt;] &nbsp; &nbsp; 174 &nbsp;--.-KB/s &nbsp; &nbsp;in 0s<br/>
+<br/>
+2025-11-20 16:26:36 (18.7 MB/s) - ‘Sup3rP4ss.rar’ saved [174/174]<br/>
+<br/>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# rar2john Sup3rP4ss.rar &gt; rar.hash<br/>
+Created directory: /root/.john<br/>
+<br/>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# ls<br/>
+Sup3rP4ss.rar<br/>
+<br/>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# cat rar.hash<br/>
+Sup3rP4ss.rar:$rar5$16$7fd9df5fd4277912db70ac859ba28061$15$48def3bf4ba6f34e055c2b18ce80081c$8$0a8addf4f732b161<br/>
+<br/>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# john --wordlist=/usr/share/wordlists/rockyou.txt rar.hash<br/>
+Using default input encoding: UTF-8<br/>
+Loaded 1 password hash (RAR5 [PBKDF2-SHA256 256/256 AVX2 8x])<br/>
+Cost 1 (iteration count) is 32768 for all loaded hashes<br/>
+Will run 12 OpenMP threads<br/>
+Press 'q' or Ctrl-C to abort, almost any other key for status<br/>
+reema &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp;(Sup3rP4ss.rar)<br/>
+1g 0:00:00:34 DONE (2025-11-20 16:30) 0.02889g/s 2440p/s 2440c/s 2440C/s steps..precious5<br/>
+Use the "--show" option to display all of the cracked passwords reliably<br/>
+Session completed.<br/>
+<br/>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# unrar x Sup3rP4ss.rar<br/>
+<br/>
+UNRAR 7.13 freeware &nbsp; &nbsp; &nbsp;Copyright (c) 1993-2025 Alexander Roshal<br/>
+<br/>
+Extracting from Sup3rP4ss.rar<br/>
+<br/>
+Enter password (will not be echoed) for Sup3rP4ss.txt:<br/>
+<br/>
+The specified password is incorrect.<br/>
+Enter password (will not be echoed) for Sup3rP4ss.txt:<br/>
+<br/>
+Extracting &nbsp;Sup3rP4ss.txt &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; &nbsp; OK<br/>
+All OK<br/>
+<br/>
+┌──(root㉿deox-PC)-[~]<br/>
+└─# cat Sup3rP4ss.txt<br/>
+Intenta probar con más &gt;&gt; 3spuM4<br/>
+<br/>
+<img src="captura de pantalla 2025-11-20 163620.png" /><br/>
+<br/>
+<img src="captura de pantalla 2025-11-20 164054.png" /><br/>
+</body></html>
