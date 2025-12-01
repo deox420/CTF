@@ -2,7 +2,7 @@
 title: "ZAPP Lab"
 description: "Writeup técnico del laboratorio ZAPP."
 author: "deox420"
-date: "2025-12-01"
+date: "25-11-2025"
 difficulty: "Principiante"
 tags: ["CTF", "Linux", "FTP", "SSH", "Privilege Escalation"]
 services: ["ftp", "ssh", "http"]
