@@ -226,13 +226,5 @@ Nmap, msfvenom, curl, nc, Windows CMD utilities (dir/type).
 - Default credentials remain one of the most common misconfigurations exploited.  
 - WAR upload + JSP payload is platform-agnostic and can give access to any OS hosting Tomcat.
 
----
-
-## 📝 Changelog
-- Normalized and condensed terminal noise.  
-- Preserved key evidence and redacted flags.  
-- Added analyst commentary, risk analysis and reproducibility notes.
-
----
 
 **Documento generado y compilado por deox420.**
