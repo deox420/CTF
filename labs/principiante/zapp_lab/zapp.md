@@ -29,13 +29,22 @@ Pistas codificadas llevan a credenciales para acceso inicial.
 
 ```bash
 nmap -p- -T4 -sV -sC 192.168.77.71
+21/tcp ftp (anon allowed)
+22/tcp ssh
+80/tcp http Apache 2.4.65
 ```
 
 ---
 
 # 2. 📡 Enumeración Web
 
-`feroxbuster` revela un mensaje oculto en Base64 que tras 4 decodificaciones revela:
+`feroxbuster -u http://192.168.77.71/` revela un mensaje oculto en Base64 que tras 4 decodificaciones revela:
+
+```
+4444 VjFST1YyRkhVa2xUYmxwYVRURmFiMXBGYUV0a2JWSjBWbTF3WVZkRk1VeERaejA5Q2c9PQo=
+```
+
+Tras decodificar 4 veces →
 
 ```
 cuatrocuatroveces
@@ -51,19 +60,29 @@ En la ruta aparece `Sup3rP4ss.rar`.
 
 Se encuentran archivos con pistas (`secret.txt`, `login.txt`).
 
+```
+ftp 192.168.77.71
+# usuario: anonymous
+```
+
 ---
 
 # 4. 💥 Cracking del RAR
 
 ```bash
+wget http://192.168.77.71/cuatrocuatroveces/Sup3rP4ss.rar
 rar2john Sup3rP4ss.rar > rar.hash
-john rar.hash
+john --wordlist=/usr/share/wordlists/rockyou.txt rar.hash
 ```
 
 Contraseña descubierta:
 
 ```
 reema
+```
+```
+unrar x Sup3rP4ss.rar
+Sup3rP4ss.txt
 ```
 
 Contenido extraído revela pista final: `3spuM4`
