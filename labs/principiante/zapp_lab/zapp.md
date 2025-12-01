@@ -45,6 +45,8 @@ En la ruta aparece `Sup3rP4ss.rar`.
 
 ---
 
+![/cuatrocuatroveces](zapp_1.png)
+
 # 3. 🚪 FTP Anónimo
 
 Se encuentran archivos con pistas (`secret.txt`, `login.txt`).
@@ -77,6 +79,8 @@ usuario: zappskred
 password: 3spuM4
 ```
 
+![ssh](zapp_2.png)
+
 ---
 
 # 6. ⬆️ Escalada de privilegios
@@ -86,6 +90,8 @@ sudo -i
 ```
 
 Acceso a root inmediato.
+
+![user/root flags](zapp_3.png)
 
 ---
 
