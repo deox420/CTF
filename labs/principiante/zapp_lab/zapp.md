@@ -97,6 +97,8 @@ Archivo relevante:
 Sup3rP4ss.rar
 ```
 
+![/cuatrocuatroveces](zapp_1.png)
+
 **Interpretación:** el autor del lab quería combinar técnicas: descubrir la ruta (enum web) y resolver un reto criptográfico/práctico (crack RAR) para obtener credenciales.
 
 ### 2.3. Correlación con FTP
@@ -155,6 +157,8 @@ password: 3spuM4
 ssh zappskred@192.168.77.71
 ```
 
+![ssh](zapp_2.png)
+
 Una vez dentro como `zappskred`, la enumeración local habitual debe realizarse: `id`, `whoami`, `pwd`, `ls -la`, revisar home, `sudo -l`, revisar `~/.ssh`, historial (`.bash_history`) y ficheros en `/home` o `/var/www`.
 
 **Buenas prácticas del analista:** priorizar `sudo -l` y `id` para detectar vectores de escalada rápidos (como en este laboratorio).
@@ -189,6 +193,9 @@ Aunque en este lab la escalada fue por `sudo -i`, el analista debe verificar sis
 ```bash
 sudo -i
 ```
+
+![user y root](zapp_3.png)
+
 Resultado: shell `root`.
 
 ### 6.2. Evidencia de compromiso
