@@ -150,6 +150,3 @@ Deshabilitar FTP anónimo, no dejar pistas, proteger sudo, usar contraseñas fue
 
 ---
 
-# 📝 Changelog
-- Documento reconstruido desde cero con plantilla maestro.
-- Flags ocultadas.
